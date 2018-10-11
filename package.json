@@ -1,0 +1,14 @@
+{
+    "name": "HIPS",
+    "version": "0.0.1",
+    "description": "",
+    "main": "app.js",
+    "scripts": {
+        "test": "mocha"
+    },
+    "author": "",
+    "license": "GPL/MIT",
+    "dependencies": {
+        "mocha": "^5.2.0"
+    }
+}
