@@ -1,14 +1,26 @@
 {
-    "name": "HIPS",
-    "version": "0.0.1",
-    "description": "",
-    "main": "app.js",
-    "scripts": {
-        "test": "mocha"
-    },
-    "author": "",
-    "license": "GPL/MIT",
-    "dependencies": {
-        "mocha": "^5.2.0"
-    }
+  "name": "hips",
+  "version": "0.0.1",
+  "description": "This repository contains the code for the P2P layer of the HIPS browser. It's written in node.js.",
+  "main": "app.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "mocha": "^5.2.0"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brorbw/ThesisProject.git"
+  },
+  "bugs": {
+    "url": "https://github.com/brorbw/ThesisProject/issues"
+  },
+  "homepage": "https://github.com/brorbw/ThesisProject#readme"
 }
