@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="devices"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/Users/noname/UNI/thesis/project/devices/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="/Users/noname/UNI/thesis/project/devices/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/Users/noname/UNI/thesis/project/devices/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="devices">
+				<Option output="/Users/noname/UNI/thesis/project/devices/cmake-build-debug/devices" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/noname/UNI/thesis/project/devices/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/noname/UNI/thesis/project/devices/spark_particle/TestRSA/lib/tropicssl/include"/>
+					<Add directory="/Users/noname/UNI/thesis/project/devices/spark_particle/TestRSA/lib/tropicssl/include/tropicssl"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/10.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 devices"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="devices/fast">
+				<Option output="/Users/noname/UNI/thesis/project/devices/cmake-build-debug/devices" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/noname/UNI/thesis/project/devices/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/noname/UNI/thesis/project/devices/spark_particle/TestRSA/lib/tropicssl/include"/>
+					<Add directory="/Users/noname/UNI/thesis/project/devices/spark_particle/TestRSA/lib/tropicssl/include/tropicssl"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/10.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 devices/fast"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/Users/noname/UNI/thesis/project/devices/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/Users/noname/UNI/thesis/project/devices/DiffieHellmanGenerator.c">
+			<Option target="devices"/>
+		</Unit>
+		<Unit filename="/Users/noname/UNI/thesis/project/devices/spark_particle/TestRSA/lib/tropicssl/include/tropicssl/aes.h">
+			<Option target="devices"/>
+		</Unit>
+		<Unit filename="/Users/noname/UNI/thesis/project/devices/spark_particle/TestRSA/lib/tropicssl/include/tropicssl/bignum.h">
+			<Option target="devices"/>
+		</Unit>
+		<Unit filename="/Users/noname/UNI/thesis/project/devices/spark_particle/TestRSA/lib/tropicssl/include/tropicssl/bn_mul.h">
+			<Option target="devices"/>
+		</Unit>
+		<Unit filename="/Users/noname/UNI/thesis/project/devices/spark_particle/TestRSA/lib/tropicssl/include/tropicssl/config.h">
+			<Option target="devices"/>
+		</Unit>
+		<Unit filename="/Users/noname/UNI/thesis/project/devices/spark_particle/TestRSA/lib/tropicssl/include/tropicssl/padlock.h">
+			<Option target="devices"/>
+		</Unit>
+		<Unit filename="/Users/noname/UNI/thesis/project/devices/spark_particle/TestRSA/lib/tropicssl/include/tropicssl/rsa.h">
+			<Option target="devices"/>
+		</Unit>
+		<Unit filename="/Users/noname/UNI/thesis/project/devices/spark_particle/TestRSA/lib/tropicssl/include/tropicssl/sha1.h">
+			<Option target="devices"/>
+		</Unit>
+		<Unit filename="/Users/noname/UNI/thesis/project/devices/spark_particle/TestRSA/lib/tropicssl/library/aes.c">
+			<Option target="devices"/>
+		</Unit>
+		<Unit filename="/Users/noname/UNI/thesis/project/devices/spark_particle/TestRSA/lib/tropicssl/library/bignum.c">
+			<Option target="devices"/>
+		</Unit>
+		<Unit filename="/Users/noname/UNI/thesis/project/devices/spark_particle/TestRSA/lib/tropicssl/library/padlock.c">
+			<Option target="devices"/>
+		</Unit>
+		<Unit filename="/Users/noname/UNI/thesis/project/devices/spark_particle/TestRSA/lib/tropicssl/library/rsa.c">
+			<Option target="devices"/>
+		</Unit>
+		<Unit filename="/Users/noname/UNI/thesis/project/devices/spark_particle/TestRSA/lib/tropicssl/library/sha1.c">
+			<Option target="devices"/>
+		</Unit>
+		<Unit filename="/Users/noname/UNI/thesis/project/devices/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

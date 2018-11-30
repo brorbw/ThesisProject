@@ -9,12 +9,20 @@ def is_prime_calc(num):
 def is_prime(num):
     return is_prime_calc(num)
 
-def get_random_prime():
+def get_random_prime(n = 128):
     while True:
-        n = getrandbits(12) + 3;
-        if is_prime(n):
-            return n
+        p = getrandbits(n) + 3;
+        p |= (1 << n- 1) | 1
+        if is_prime(p):
+            return p
 
+def gcd(a,b):
+    while a != b:
+        if a > b:
+            a = a - b
+        else:
+            b = b - a
+    return a
 
 def primitive_root(modulo):
     required_set = set(num for num in range (1, modulo) if math.gcd(num, modulo) == 1)
