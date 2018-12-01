@@ -31,13 +31,44 @@ app.get('/data/:id', function (req,res){
 app.put('/sensors/connect/:id', function(req,res){
     //connect the node with id 'id'
     setImmediate(()=>{
-        var allIds = getIds(req.body);
-        //console.log(nodes);
-        //port might note be neccessary
-        var key = aes.generateKey(16);
-        console.log(`adding key${key} to node ${allIds[allIds.length-1]}`);
-        nodes.push(new Node(getIP(req),req.port,allIds[allIds.length-1],key));
-        //var encryptionKeyNode = checkWhichKeyEncryption(req.body.challenge);
+        var decryptedMessages = decryptedMessage(req.body);
+        var nodePath = decryptedMessages.nodePath;
+        var initNodemessag = decryptedMessages.msg;
+        console.log(nodePath);
+        console.log(initNodemessag);
+        var encryptionKeyNode = checkWhichKeyEncryption(initNodemessag);
+        if(encryptionKeyNode === null){
+            console.log(`No key for node ${initNodemessag.node.id}`);
+        }
+        if(nodePath.length > 1){
+            var pairKey = {
+                ids: [
+                    nodePath[nodePath.length/2],
+                    initNodemessag.node.id
+
+                ],
+                key: aes.generateKey(16)
+            };
+         //   var encryptForInitialNode
+        } else {
+            var sinkKey = aes.generateKey(16);
+            console.log(sinkKey);
+            var encryptedKey = aes.encrypt(encryptionKeyNode,128,iv,sinkKey);
+            var message = {
+                iv: iv,
+                key: encryptedKey
+            };
+            var options = optionsGenerator('127.0.0.1',
+                                           initNodemessag.node.port,
+                                           `/sink/connect/${id}`,
+                                           'put',
+                                           message);
+            httpRequest(options,(data)=>{},message);
+            nodes.push(new Node(getIP(req),req.port,initNodemessag.node.id,sinkKey));
+        }
+        //console.log(`adding key${key} to node ${nodePath[nodePath.length-1]}`);
+       
+        var encrypedResponse;
         //console.log(`the correct key was ${encryptionKeyNode}`);
         //send response to the node on /sink/connect
         //generate keys for the pair of nodes if present
@@ -46,7 +77,7 @@ app.put('/sensors/connect/:id', function(req,res){
         });
     var responseJSON = JSON.stringify("{}");
     res.sendStatus(202);
-});
+                });
 
 
 
@@ -56,7 +87,7 @@ app.get('/sensors', function(req,res){
     //shows the connected sensors
 });
 
-app.get('/keys/number/nopre', function(req,res){
+app.get('/keys/number/NPR', function(req,res){
     //gets the total amount of non pre-shared keys used in the system
 });
 
@@ -64,30 +95,33 @@ app.get('/keys/number/pre', function(req,res){
     //get the total amount of pre-shared keys used in the system
 });
 
-function getIds(body,acc){
+function decryptedMessage(body,acc){
     if(typeof acc === 'undefined'){
         acc = [];
     }
 
     if(body.hasOwnProperty('msg')){
         acc.push(body.node.id);
-        return acc;
+        return {
+            nodePath: acc,
+            msg: body
+        };
     } else {
         var node = nodes.find(function(element){
             return element.id === body.node.id;
         });
-        var decryptedMessage = body.message//aes.decrypt(node.key, 128, body.node.iv,body.message);
+        var decMsg = body.message//aes.decrypt(node.key, 128, body.node.iv,body.message);
         if(typeof node === 'undefined'){
-            return tmp.push(getIds(decryptedMessage));
+            return tmp.push(decryptedMessage(decryptedMessage));
         }
         acc.push(node.id);
-        return getIds(decryptedMessage,acc);
+        return decryptedMessage(decMsg,acc);
     }
 }
 
 
 function checkWhichKeyEncryption(msg){
-    var challenge = msg.challenge;
+    var challenge = msg.msg;
     var node = msg.node;
     var correctKey = null;
     factoryKeys.forEach((element) => {
@@ -95,6 +129,7 @@ function checkWhichKeyEncryption(msg){
             var decrypt = aes.decrypt(element,128, node.iv, challenge.ciphertext);
             if( challenge.plaintext === decrypt){
                 correctKey = element;
+                console.console.log('hello');
             }
         }
         catch (err) {
@@ -106,35 +141,42 @@ function checkWhichKeyEncryption(msg){
 }
 
 
+
 function httpRequest(options, callback, data){
     var req = http.request(options, (res) =>{
-        console.log(`status: ${res.statusCode}`);
-        console.log(`headers: ${JSON.stringify(res.headers)}`);
+        //console.log(`status: ${res.statusCode}`);
+        //console.log(`headers: ${JSON.stringify(res.headers)}`);
+        if(res.statusCode === 202){
+            return;
+        }
         res.setEncoding('utf8');
         var output = '';
         res.on('data', (chunk) => {
             //chunk the data
             output += chunk;
-            console.log(`body: ${chunk}`);
+            //console.log(`body: ${chunk}`);
         });
         res.on('end', () => {
             //do something with the data
             //us the callback
-            var obj = JSON.parse(output);
-            console.log('no more data');
+            callback(output);
+            //var obj = JSON.parse(output);
+            //console.log('no more data');
         });
     });
     req.on('error', (e) =>{
         console.error(`a problem with request: ${e.message}`);
     });
     if(typeof data === 'undefined') {data = '';};
-    req.write(data);
+    req.write(JSON.stringify(data));
     req.end();
 }
 
+
 function optionsGenerator(ip,port,path,method,data){
     var datalength;
-    datalength =(typeof data === 'undefined') ? 0 : Buffer.bytelength(data);
+    var stringData = JSON.stringify(data).toString();
+    datalength =(typeof data === 'undefined') ? 0 : Buffer.byteLength(stringData);
     return {
         hostname: ip,
         port: port,

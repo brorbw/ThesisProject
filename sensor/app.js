@@ -12,29 +12,34 @@ var parent;
 var nodes;
 var id;
 var iv = 'JpC10OoCLYs5u+lS7APMaA==';
-var factoryKeys = ['edb636925a132266d148d7ce88633076'];
+var factoryKeys = ['09e0ff82691c1fe063b49714c7375088'];
 var assignedKeys = [];
+
+app.put('/sensors/key/:id',function(req,res){
+    //adds a key for node with id id
+});
 
 app.put('/sensors/connect/:id', function(req,res){
     //forwards a connect request and adds this node to the request
     //wrap the request body, encrypt using sink key and add id
-    var body = req.body
+    var body = req.body;
     console.log(`getting request from ${req.params.id}`);
     setImmediate(()=>{
-        // var found = nodes.find(function(element){
-        //     return element.id === body.id;
-        // });
-        // if(found !== 'undefined' || found !== null){
-        //     //decrypt
-        //     var decryptedBody = aes.decrypt(found.key,128,iv,body);
-        // }
-
-        // var encryptedBody = aes.encrypt(sinkKey,128,iv,decryptedBody.toString());
+         //var found = nodes.find(function(element){
+         //    return element.id === body.id;
+         //});
+         //if(found !== 'undefined' || found !== null){
+             //the message was encrypted lets decrypt
+         //    var decryptedBody = aes.decrypt(found.key,128,iv,body);
+        //
+        var decryptedBody = body;
+        //var encryptedBody = aes.encrypt(sinkKey,128,iv,decryptedBody.toString());
         var newBody = {
             node : {
                 id : id, //the ID of the current node
+                port: port,
                 iv : iv //someIV
-                //maybe a hash at some point
+                //maybe a MAC at some point
             },
             message : body//aes.encrypt(parent.key,128,iv,encryptedBody)
         };
@@ -49,8 +54,11 @@ app.put('/sensors/connect/:id', function(req,res){
     res.sendStatus(200);
 });
 
-app.put('/sink/connect', function(req,res){
-
+app.put('/sink/connect/:id', function(req,res){
+    //callback from sink when it is ready, with id id.
+    var decryptedKey = aes.decrypt(factoryKeys[0],128,req.body.iv, req.body.key);
+    console.log(decryptedKey);
+    res.sendStatus(200);
 });
 
 app.get('/forward/:id',function(req,res){
@@ -73,6 +81,7 @@ function connectThisNode(){
     var message = {
         node : {
             id : id,
+            port: port,
             iv : iv //change this to a more appropriate iv
         },
         msg : {
