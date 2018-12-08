@@ -12,7 +12,8 @@ var nodes = [];
 
 var iv = 'JpC10OoCLYs5u+lS7APMaA==';
 var factoryKeys = [];
-
+var routeMap = new Map();
+var pairKey = new Map();
 app.use(express.json());
 
 //example of retriving data from the sink
@@ -26,58 +27,182 @@ app.get('/data/:id', function (req,res){
     //retrive data;
 });
 
+app.get('/id',function(req,res){
+    res.send(id);
+});
 
-//TODO add a node
+
+app.put('/sensors/keypair',function(req,res){
+    var decryptedMessages = decryptedMessage(req.body);
+    setImmediate(()=>{
+        //decrypting the key pair
+        var decryptNodePair = JSON.parse(
+            aes.decrypt(nodes.find((element)=>
+                                   {return element.id === decryptedMessages.msg.node.id;}).key,
+                                      128,
+                                      decryptedMessages.msg.node.iv,
+                                      decryptedMessages.msg.pair
+                                                ));
+        var nodePath = decryptedMessages.nodePath;
+        var logMessage;
+        //send key to nodes
+        var generatedNodeKey = aes.generateKey(16);
+        var node1 = nodes.find(
+            (element)=>{return element.id === decryptNodePair.pair.node1.id;});
+        var keyPairMessage;
+        if(decryptNodePair.pair.node2.id === id){
+            //node is connecting to the sink
+            keyPairMessage = {
+                node1 : {
+                    iv : iv,
+                    port : node1.port,
+                    ip : node1.ip,
+                    key : aes.encrypt(node1.key,128,iv,generatedNodeKey)
+                },
+                sink : {
+                    id : id
+                }
+            };
+            logMessage = `node ${node1.id} is sink neighbour using key ${generatedNodeKey}`;
+            pairKey.set(node1.id,generatedNodeKey);
+        } else {
+            //console.log(decryptNodePair.pair.node2.id);
+            var node2 = nodes.find(
+                (element)=>{return element.id === decryptNodePair.pair.node2.id;});
+            keyPairMessage = {
+                node1 : {
+                    iv : iv,
+                    port : node1.port,
+                    ip : node1.ip,
+                    id : node1.id,
+                    key : aes.encrypt(node1.key,128,iv,generatedNodeKey)
+                },
+                node2 : {
+                    iv : iv,
+                    port : node2.port,
+                    ip : node2.ip,
+                    id : node2.id,
+                    toNode : node1.id,
+                    key : aes.encrypt(node2.key,128,iv,generatedNodeKey)
+                }
+            };
+            logMessage = `nodes ${node1.id} and ${node2.id} is assigned key ${generatedNodeKey}`;
+        }
+        var messageToNodes = {
+            node : {
+                id : id,
+                port: port,
+                iv : iv
+            },
+            encryptedKeyPair: aes.encrypt(node1.key,128,iv,JSON.stringify(keyPairMessage))
+        };
+        if(nodePath.length > 1){
+            //if more than one node, make compound message
+            //construct compound message
+            var compoundMessage = messageToNodes;
+            var nextNode;
+            for(var i=0;i < nodePath.length-1; i++){
+                nextNode = nodes.find((element)=>{return element.id === nodePath[nodePath.length-2-i];});
+                var tmpmessage = aes.encrypt(nextNode.key, 128,iv, JSON.stringify(compoundMessage));
+                var tmp = {
+                    iv : iv,
+                    message : tmpmessage
+                };
+                compoundMessage = tmp;
+            }
+            messageToNodes = compoundMessage;
+            console.log(`path to node ${node1.id} is ${nodePath}`);
+        }
+        var options = optionsGenerator('127.0.0.1',
+                         routeMap.get(decryptNodePair.pair.node1.id).port,
+                         `/key/sink/${node1.id}`,
+                         'PUT',
+                         messageToNodes);
+        httpRequest(options,(data)=>{},messageToNodes);
+        console.log(logMessage);
+        });
+    res.sendStatus(200);
+});
+
+app.put('/key/sensor/:id',function(req,res){
+    //forwards a key from one node to another
+    var body = req.body;
+    var nodeToForwardTo = routeMap.get(body.id);
+    var options = optionsGenerator(nodeToForwardTo.ip,
+                                   nodeToForwardTo.port,
+                                   `/key/sensor/${body.id}`,
+                                   'put',
+                                   body);
+    httpRequest(options, (data)=>{},body);
+    console.log(`forwarding key to ${body.id} via ${nodeToForwardTo.id}`);
+    res.sendStatus(200);
+});
+
 app.put('/sensors/connect/:id', function(req,res){
     //connect the node with id 'id'
     setImmediate(()=>{
+        //init the respond message
         var decryptedMessages = decryptedMessage(req.body);
         var nodePath = decryptedMessages.nodePath;
-        var initNodemessag = decryptedMessages.msg;
-        console.log(nodePath);
-        console.log(initNodemessag);
-        var encryptionKeyNode = checkWhichKeyEncryption(initNodemessag);
+        var initNodemessage = decryptedMessages.msg;
+        try {
+            var encryptionKeyNode = checkWhichKeyEncryption(initNodemessage);
+        } catch (err){
+            console.err(err.message);
+            console.log('could not find the node canceling adding node');
+            return;
+        }
         if(encryptionKeyNode === null){
-            console.log(`No key for node ${initNodemessag.node.id}`);
+            console.log(`No key for node ${initNodemessage.node.id}`);
+            return;
         }
+        var sinkKey = aes.generateKey(16);
+        var encryptedKey = aes.encrypt(encryptionKeyNode,128,iv,sinkKey);
+        console.log(`key for ${initNodemessage.node.id} is ${sinkKey}`);
+        var message = {
+            iv: iv,
+            key: encryptedKey,
+            parentID: (nodePath.length > 1) ? nodePath[nodePath.length-2] : id
+        };
+        var newNode =new Node(getIP(req),
+                              initNodemessage.node.port,
+                              initNodemessage.node.id,
+                              sinkKey);
+        nodes.push(newNode);
+        routeMap.set(initNodemessage.node.id,newNode);
         if(nodePath.length > 1){
-            var pairKey = {
-                ids: [
-                    nodePath[nodePath.length/2],
-                    initNodemessag.node.id
-
-                ],
-                key: aes.generateKey(16)
-            };
-         //   var encryptForInitialNode
-        } else {
-            var sinkKey = aes.generateKey(16);
-            console.log(sinkKey);
-            var encryptedKey = aes.encrypt(encryptionKeyNode,128,iv,sinkKey);
-            var message = {
-                iv: iv,
-                key: encryptedKey
-            };
-            var options = optionsGenerator('127.0.0.1',
-                                           initNodemessag.node.port,
-                                           `/sink/connect/${id}`,
-                                           'put',
-                                           message);
-            httpRequest(options,(data)=>{},message);
-            nodes.push(new Node(getIP(req),req.port,initNodemessag.node.id,sinkKey));
+            //if more than one node, make compound message
+            //construct compound message
+            var compoundMessage = message;
+            var nextNode;
+            for(var i=0;i < nodePath.length-1; i++){
+                nextNode = nodes.find((element)=>{return element.id === nodePath[nodePath.length-2-i];});
+                var tmpmessage = aes.encrypt(nextNode.key, 128,iv, JSON.stringify(compoundMessage));
+                var tmp = {
+                    iv : iv,
+                    message : tmpmessage
+                };
+                compoundMessage = tmp;
+            }
+            message = compoundMessage;
+            routeMap.set(initNodemessage.node.id,
+                         nodes.find((element)=>{return element.id === nodePath[0];}));
         }
-        //console.log(`adding key${key} to node ${nodePath[nodePath.length-1]}`);
-       
-        var encrypedResponse;
-        //console.log(`the correct key was ${encryptionKeyNode}`);
+        //send key back to the node
+        var options = optionsGenerator('127.0.0.1',
+                                       routeMap.get(initNodemessage.node.id).port,
+                                       //should be port that initiated//initNodemessage.node.port,
+                                       `/sink/connect/${initNodemessage.node.id}`,
+                                       'put',
+                                       message);
+        httpRequest(options,(data)=>{},message);
         //send response to the node on /sink/connect
         //generate keys for the pair of nodes if present
         //encrypt in layers
         //send request
         });
-    var responseJSON = JSON.stringify("{}");
     res.sendStatus(202);
-                });
+});
 
 
 
@@ -87,7 +212,7 @@ app.get('/sensors', function(req,res){
     //shows the connected sensors
 });
 
-app.get('/keys/number/NPR', function(req,res){
+app.get('/keys/number/nopre', function(req,res){
     //gets the total amount of non pre-shared keys used in the system
 });
 
@@ -100,7 +225,7 @@ function decryptedMessage(body,acc){
         acc = [];
     }
 
-    if(body.hasOwnProperty('msg')){
+    if(body.hasOwnProperty('msg') || body.hasOwnProperty('pair')){
         acc.push(body.node.id);
         return {
             nodePath: acc,
@@ -110,12 +235,14 @@ function decryptedMessage(body,acc){
         var node = nodes.find(function(element){
             return element.id === body.node.id;
         });
-        var decMsg = body.message//aes.decrypt(node.key, 128, body.node.iv,body.message);
         if(typeof node === 'undefined'){
-            return tmp.push(decryptedMessage(decryptedMessage));
+            console.log('node is not found in nodes');
+            throw 'node not found';
         }
+        var decMsg = aes.decrypt(node.key, 128, body.node.iv,body.message);
+        var JSONmessage = JSON.parse(decMsg);
         acc.push(node.id);
-        return decryptedMessage(decMsg,acc);
+        return decryptedMessage(JSONmessage,acc);
     }
 }
 
@@ -129,7 +256,6 @@ function checkWhichKeyEncryption(msg){
             var decrypt = aes.decrypt(element,128, node.iv, challenge.ciphertext);
             if( challenge.plaintext === decrypt){
                 correctKey = element;
-                console.console.log('hello');
             }
         }
         catch (err) {
@@ -144,8 +270,8 @@ function checkWhichKeyEncryption(msg){
 
 function httpRequest(options, callback, data){
     var req = http.request(options, (res) =>{
-        //console.log(`status: ${res.statusCode}`);
-        //console.log(`headers: ${JSON.stringify(res.headers)}`);
+        // console.log(`status: ${res.statusCode}`);
+        // console.log(`headers: ${JSON.stringify(res.headers)}`);
         if(res.statusCode === 202){
             return;
         }
@@ -158,7 +284,7 @@ function httpRequest(options, callback, data){
         });
         res.on('end', () => {
             //do something with the data
-            //us the callback
+            //use the callback
             callback(output);
             //var obj = JSON.parse(output);
             //console.log('no more data');
@@ -167,7 +293,7 @@ function httpRequest(options, callback, data){
     req.on('error', (e) =>{
         console.error(`a problem with request: ${e.message}`);
     });
-    if(typeof data === 'undefined') {data = '';};
+    if(typeof data === 'undefined') {data = '{}';};
     req.write(JSON.stringify(data));
     req.end();
 }
@@ -222,6 +348,8 @@ function main(){
     lineReader.on('line',function(line){
         factoryKeys.push(line);
     });
+    //add this sink to the nodes
+    nodes.push(new Node('127.0.0.1',port,id,undefined));
     //setInterval(mainAppLoop, 1000);
     app.listen(port, ()=>console.log(`Sink is started on port ${port}`));
 }
