@@ -13,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "express": "^4.16.4",
+    "json-size": "^1.0.0",
     "mocha": "^5.2.0"
   }
 }

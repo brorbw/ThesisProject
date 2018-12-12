@@ -28,8 +28,8 @@ function encrypt(key, keyLength, iv, plaintext) {
 	}
 
 function decrypt(key, keyLength, iv, ciphertext){
-		const ivBuf = new Buffer(iv, 'base64');
-		const ctBuf = new Buffer(ciphertext, 'base64');
+		const ivBuf = Buffer.from(iv, 'base64');
+		const ctBuf = Buffer.from(ciphertext, 'base64');
 
 		const decipher = crypto.createDecipheriv(`aes${keyLength}`,
                                              parseKey(key,keyLength),

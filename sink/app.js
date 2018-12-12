@@ -2,8 +2,10 @@ const args = require('./shared/processargs.js');
 const aes = require('./shared/AES-crypto.js');
 const express = require('express');
 const http = require('http');
+const fs = require('fs');
 const app = express();
-
+const jsonSize = require('json-size');
+var stream;
 var port = 3000;
 
 var id;
@@ -13,9 +15,30 @@ var nodes = [];
 var iv = 'JpC10OoCLYs5u+lS7APMaA==';
 var factoryKeys = [];
 var routeMap = new Map();
-var pairKey = new Map();
+var pairKeys = new Map();
 app.use(express.json());
+var dataLog = false;
 
+if(dataLog){
+    var _privatelog = console.log;
+    // var _privateerr = console.error;
+    console.log = (string)=>{};
+    // console.error = iderror;
+    // function idlog (text){
+    //     _privatelog(`${id}: ${text}`);
+    // };
+    // function iderror(text){
+    //     _privateerr(`${id}: ${text}`);
+    // }
+} else {
+    var _privatelog = (string)=>{};
+}
+function dataPrint(key,value){
+    _privatelog(`${id},${key},${value}`);
+}
+var data = {
+    log : dataPrint
+};
 //example of retriving data from the sink
 //The sink should forward data either in
 //batches or real time
@@ -31,6 +54,17 @@ app.get('/id',function(req,res){
     res.send(id);
 });
 
+app.get('/info',function (req,res) {
+    var message = {
+        ip: '127.0.0.1',
+        id: id,
+        listningPort: port,
+        routeMap : JSON.stringify([...routeMap]),
+        pairKeys : JSON.stringify([...pairKeys]),
+        nodes : nodes
+    };
+    res.send(message);
+});
 
 app.put('/sensors/keypair',function(req,res){
     var decryptedMessages = decryptedMessage(req.body);
@@ -64,9 +98,8 @@ app.put('/sensors/keypair',function(req,res){
                 }
             };
             logMessage = `node ${node1.id} is sink neighbour using key ${generatedNodeKey}`;
-            pairKey.set(node1.id,generatedNodeKey);
+            pairKeys .set(node1.id,generatedNodeKey);
         } else {
-            //console.log(decryptNodePair.pair.node2.id);
             var node2 = nodes.find(
                 (element)=>{return element.id === decryptNodePair.pair.node2.id;});
             keyPairMessage = {
@@ -140,16 +173,19 @@ app.put('/key/sensor/:id',function(req,res){
 
 app.put('/sensors/connect/:id', function(req,res){
     //connect the node with id 'id'
+    //console.log(`${id}:data request size = ${jsonSize(req.body)}`);
     setImmediate(()=>{
         //init the respond message
         var decryptedMessages = decryptedMessage(req.body);
         var nodePath = decryptedMessages.nodePath;
+        var json_size = jsonSize(req.body);
+        data.log(nodePath.length,json_size);
         var initNodemessage = decryptedMessages.msg;
         try {
             var encryptionKeyNode = checkWhichKeyEncryption(initNodemessage);
         } catch (err){
             console.err(err.message);
-            console.log('could not find the node canceling adding node');
+            console.log('could not find the node, canceling adding node');
             return;
         }
         if(encryptionKeyNode === null){
@@ -162,8 +198,14 @@ app.put('/sensors/connect/:id', function(req,res){
         var message = {
             iv: iv,
             key: encryptedKey,
+            sinkID : id,
             parentID: (nodePath.length > 1) ? nodePath[nodePath.length-2] : id
         };
+        for(var i = 0;i<nodes.length;i++){
+            if(nodes[i].id === initNodemessage.node.id){
+                nodes.splice(i,1);
+            }
+        }
         var newNode =new Node(getIP(req),
                               initNodemessage.node.port,
                               initNodemessage.node.id,
@@ -176,8 +218,12 @@ app.put('/sensors/connect/:id', function(req,res){
             var compoundMessage = message;
             var nextNode;
             for(var i=0;i < nodePath.length-1; i++){
-                nextNode = nodes.find((element)=>{return element.id === nodePath[nodePath.length-2-i];});
-                var tmpmessage = aes.encrypt(nextNode.key, 128,iv, JSON.stringify(compoundMessage));
+                nextNode = nodes.find((element)=>
+                                      {return element.id === nodePath[nodePath.length-2-i];});
+                var tmpmessage = aes.encrypt(nextNode.key,
+                                             128,
+                                             iv,
+                                             JSON.stringify(compoundMessage));
                 var tmp = {
                     iv : iv,
                     message : tmpmessage
@@ -202,6 +248,108 @@ app.put('/sensors/connect/:id', function(req,res){
         //send request
         });
     res.sendStatus(202);
+});
+
+app.put('/sensors/disconnect/:id',function (req,res){
+    if(req.params.id === id){
+        pairKeys.delete(req.body.id);
+        console.log(`deleted key for ${req.body.id}`);
+    } else {
+        if(typeof(routeMap.get(req.params.id)) !== 'undefined'){
+            var node = routeMap.get(req.params.id);
+            var options = optionsGenerator(node.ip,
+                                           node.port,
+                                           `/sensors/disconnect/${req.params.id}`,
+                                           'put',
+                                           req.body);
+            httpRequest(options,(data)=>{},req.body);
+        }
+    }
+    res.sendStatus(200);
+});
+
+app.put('/sensors/routemap',function(req,res){
+    console.log('getting new routemap');
+    var newMap = new Map(JSON.parse(req.body.map));
+    newMap.forEach((element,key)=>{
+        routeMap.set(key,new Node(element.ip,element.port,element.id));
+    });
+    res.sendStatus(200);
+});
+
+app.get('/sensors/disconnect',function (req,res){
+    routeMap.delete(req.query.id);
+    pairKeys.delete(req.query.id);
+    for(var i = 0;i<nodes.length;i++){
+        if(nodes[i].id === req.query.id){
+            nodes.splice(i,1);
+        }
+    }
+    console.log(`disconnecting node: ${req.query.id}`);
+    res.send(`node: ${req.query.id} is purged from sink`);
+});
+
+app.put('/forward',function(req,res){
+    stream.write(`${id},1\n`);
+    //forwards a message
+    /**
+       outer message structure
+       {
+           id : the id that encrypted the message,
+           iv : the initialisation Vector
+           message : the encrypted message
+       }
+       inner
+       {
+           id : the node that the message should be forwarded to
+           cover : boolean
+           coverCount : number of 
+           iv : the initialisation Vector
+           message : encrypted message 
+       }
+    */
+    var body = req.body;
+    if(pairKeys.has(body.id)){
+        var decryptedOuter = JSON.parse(aes.decrypt(pairKeys.get(body.id),
+                                                    128,
+                                                    body.iv,
+                                                    body.message));
+        if(decryptedOuter.idTO === id){
+            var key = nodes.find((element)=>{return element.id === decryptedOuter.idFROM;});
+            var decryptInner = JSON.parse(aes.decrypt(key.key,
+                                                      128,
+                                                      decryptedOuter.iv,
+                                                      JSON.stringify(decryptedOuter.message)));
+            console.log(`got data: ${decryptInner} from ${decryptedOuter.idFROM}`);
+        }else if(decryptedOuter.cover){
+            //forward cover traffic
+            console.log('the message is cover traffic');
+        }else if(routeMap.has(decryptedOuter.idTO)){
+            //message is going to child
+            var forwardNode = routeMap.get(decryptedOuter.idTO);
+            
+            var encryptedMessage = aes.encrypt(pairKeys.get(forwardNode.id),
+                                               128,
+                                               iv,
+                                               JSON.stringify(decryptedOuter));
+            var messageToForward = {
+                id : id,
+                iv : iv,
+                message : encryptedMessage
+            };
+            var options = optionsGenerator(forwardNode.ip,
+                                           forwardNode.port,
+                                           `/forward`,
+                                           'put',
+                                           messageToForward);
+            httpRequest(options,(data)=>{},messageToForward);
+            console.log(`forwarding message to ${decryptedOuter.idTO} from ${decryptedOuter.idFROM} via ${forwardNode.id}`);
+        }else{
+            //message is going to parent
+            console.log(`node ${decryptedMessage.id} is unknown`);
+        }
+    }
+    res.sendStatus(200);
 });
 
 
@@ -345,6 +493,7 @@ function main(){
     var lineReader = require('readline').createInterface({
         input: require('fs').createReadStream(cmdArgs[2])
     });
+    stream = fs.createWriteStream(`../data/${id}.txt`);
     lineReader.on('line',function(line){
         factoryKeys.push(line);
     });
