@@ -497,9 +497,9 @@ app.get('/sendDataToNode',async function(req,res){
     res.sendStatus(200);
 });
 
-function connectThisNode(ip,paranPort){
+function connectThisNode(paranIp,paranPort){
     //initialising the connection protocol with node ip
-    parent = new Node(ip,paranPort,undefined,undefined);
+    parent = new Node(paranIp,paranPort,undefined,undefined);
     console.log(`connecting to ${parent.port}`);
     var msg = aes.randomString(16);
     var encryptedmsg = aes.encrypt(factoryKeys[0],128, iv,msg);
@@ -746,7 +746,7 @@ function mainAppLoop(){
     //sink
 }
 function startServer(port){
-    app.listen(port, ()=>console.log(`Sensor is started on port ${port}`));
+    app.listen(port, ()=>console.log(`Sensor:ID:${id} is started on ip:${ip} and port:${port}`));
 }
 
 async function getID(ip,port,callback){
@@ -784,7 +784,6 @@ async function main(){
     if(filelogger)streamForward = fs.createWriteStream(`../data/${id}_forward.txt`);
     if(filelogger)streamOriginal = fs.createWriteStream(`../data/${id}_original.txt`);
     if(filelogger)streamCover = fs.createWriteStream(`../data/${id}_cover.txt`);
-    console.log(`ID: ${id}`);
     cmdArgs.slice(1).forEach((element) =>{
         factoryKeys.push(element);
     });
