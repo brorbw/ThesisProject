@@ -154,7 +154,7 @@ app.put('/sensors/keypair',function(req,res){
             },
             message: encryptedBody
         };
-        var options = optionsGenerator(parent.port,
+        var options = optionsGenerator(parent.ip,
                                    parent.port,
                                    '/sensors/keypair',
                                    'PUT',
