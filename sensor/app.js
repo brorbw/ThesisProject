@@ -26,7 +26,7 @@ var routeMap = new Map(); //a map that contains the nodes that have made request
 var isConnected = false;
 
 
-
+var filelogger = false;
 var dataLog = false;
 if(dataLog){
     var _privatelog = console.log;
@@ -381,7 +381,7 @@ app.put('/sink/connect/:id', function(req,res){
 
 app.put('/forward',function(req,res){
     var date = new Date();
-    streamForward.write(`${port},${date.getTime()},1\n`);
+    if(filelogger) streamForward.write(`${port},${date.getTime()},1\n`);
     //forwards a message
     /**
        outer message structure
@@ -689,7 +689,7 @@ function sendDataToNode (data,node){
 function sendDataToSink (data){
     //consider data format? JSON or just int/string
     var date = new Date();
-    streamOriginal.write(`${port},${date.getTime()},1\n`);
+    if(filelogger)streamOriginal.write(`${port},${date.getTime()},1\n`);
     var encryptedData = aes.encrypt(sinkKey,128,iv,JSON.stringify(data));
     var innerMessage ={
         idFROM : id,
@@ -713,7 +713,7 @@ function sendDataToSink (data){
 }
 function sendCover (data){
     var date = new Date();
-    streamCover.write(`${port},${date.getTime()},1\n`);
+    if(filelogger)streamCover.write(`${port},${date.getTime()},1\n`);
     var encryptedData = aes.encrypt(sinkKey,128,iv,data);
     
 }
@@ -780,9 +780,9 @@ async function main(){
         }
     }
     id = aes.generateKey(4);
-    streamForward = fs.createWriteStream(`../data/${id}_forward.txt`);
-    streamOriginal = fs.createWriteStream(`../data/${id}_original.txt`);
-    streamCover = fs.createWriteStream(`../data/${id}_cover.txt`);
+    if(filelogger)streamForward = fs.createWriteStream(`../data/${id}_forward.txt`);
+    if(filelogger)streamOriginal = fs.createWriteStream(`../data/${id}_original.txt`);
+    if(filelogger)streamCover = fs.createWriteStream(`../data/${id}_cover.txt`);
     console.log(`ID: ${id}`);
     cmdArgs.slice(1).forEach((element) =>{
         factoryKeys.push(element);

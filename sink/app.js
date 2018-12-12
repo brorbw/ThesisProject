@@ -19,7 +19,7 @@ var routeMap = new Map();
 var pairKeys = new Map();
 app.use(express.json());
 var dataLog = false;
-
+var fileLogger = false;
 if(dataLog){
     var _privatelog = console.log;
     // var _privateerr = console.error;
@@ -291,7 +291,7 @@ app.get('/sensors/disconnect',function (req,res){
 });
 
 app.put('/forward',function(req,res){
-    stream.write(`${id},1\n`);
+    if(fileLogger) stream.write(`${id},1\n`);
     //forwards a message
     /**
        outer message structure
@@ -508,7 +508,7 @@ function main(){
     var lineReader = require('readline').createInterface({
         input: require('fs').createReadStream(cmdArgs[2])
     });
-    stream = fs.createWriteStream(`../data/${id}.txt`);
+    if(fileLogger)stream = fs.createWriteStream(`../data/${id}.txt`);
     lineReader.on('line',function(line){
         factoryKeys.push(line);
     });
