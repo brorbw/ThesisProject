@@ -366,7 +366,7 @@ app.put('/sink/connect/:id', function(req,res){
             var forwardMessage = JSON.parse(aes.decrypt(sinkKey,128,body.iv,body.message));
             var nodeToForwardTo = routeMap.get(req.params.id);
             //forward the response
-            var options = optionsGenerator('127.0.0.1',
+            var options = optionsGenerator(nodeToForwardTo.ip,
                                            nodeToForwardTo.port,
                                            `/sink/connect/${req.params.id}`,
                                            'put',
@@ -489,7 +489,7 @@ app.get('/sendDataToNode',async function(req,res){
             sendDataToNode(query.data,newNode);
         } else {
             requestPairKeyToNode(newNode);
-            await sleep (500);//wait for the keypair
+            await sleep (1000);//wait for the keypair
             sendDataToNode(query.data,newNode);
         }
 
@@ -754,7 +754,7 @@ async function getID(ip,port,callback){
     var nodeID;
     var options = optionsGenerator(ip,port,'/id','get','{}');
     var res = await httpRequest(options, (data)=>{nodeID = data;callback(data);},'{}');
-    await sleep(500);
+    await sleep(1000);
     return nodeID;
 }
 

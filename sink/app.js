@@ -7,7 +7,11 @@ const app = express();
 const jsonSize = require('json-size');
 var stream;
 var port = 3000;
-
+var 
+var ip;
+require('dns').lookup(require('os').hostname(), function (err, add, fam) {
+    ip = add;
+});
 var id;
 
 var nodes = [];
@@ -56,7 +60,7 @@ app.get('/id',function(req,res){
 
 app.get('/info',function (req,res) {
     var message = {
-        ip: '127.0.0.1',
+        ip: ip,
         id: id,
         listningPort: port,
         routeMap : JSON.stringify([...routeMap]),
@@ -146,7 +150,7 @@ app.put('/sensors/keypair',function(req,res){
             messageToNodes = compoundMessage;
             console.log(`path to node ${node1.id} is ${nodePath}`);
         }
-        var options = optionsGenerator('127.0.0.1',
+        var options = optionsGenerator(routeMap.get(decryptNodePair.pair.node1.id).ip,
                          routeMap.get(decryptNodePair.pair.node1.id).port,
                          `/key/sink/${node1.id}`,
                          'PUT',
@@ -235,7 +239,7 @@ app.put('/sensors/connect/:id', function(req,res){
                          nodes.find((element)=>{return element.id === nodePath[0];}));
         }
         //send key back to the node
-        var options = optionsGenerator('127.0.0.1',
+        var options = optionsGenerator(routeMap.get(initNodemessage.node.id).ip,
                                        routeMap.get(initNodemessage.node.id).port,
                                        //should be port that initiated//initNodemessage.node.port,
                                        `/sink/connect/${initNodemessage.node.id}`,
@@ -498,9 +502,9 @@ function main(){
         factoryKeys.push(line);
     });
     //add this sink to the nodes
-    nodes.push(new Node('127.0.0.1',port,id,undefined));
+    nodes.push(new Node(ip,port,id,undefined));
     //setInterval(mainAppLoop, 1000);
-    app.listen(port, ()=>console.log(`Sink is started on port ${port}`));
+    app.listen(port, ()=>console.log(`Sink is started on ip:${ip} and port:${port}`));
 }
 
 
