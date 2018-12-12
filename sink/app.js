@@ -3,14 +3,12 @@ const aes = require('./shared/AES-crypto.js');
 const express = require('express');
 const http = require('http');
 const fs = require('fs');
+const os = require('os');
 const app = express();
 const jsonSize = require('json-size');
 var stream;
 var port = 3000;
 var ip;
-require('dns').lookup(require('os').hostname(), function (err, add, fam) {
-    ip = add;
-});
 var id;
 
 var nodes = [];
@@ -493,6 +491,20 @@ function main(){
     }
     port = cmdArgs[0];
     id = cmdArgs[1];
+    var interfaces = os.networkInterfaces();
+    if(interfaces.hasOwnProperty('enp2s0')){
+        if(interfaces.enp2s0[0].family === 'IPv4'){
+            ip = interfaces.enp2s0[0].address;
+        } else {
+            ip = interfaces.enp2s0[1].address;
+        }
+    } else if (interfaces.hasOwnProperty('en0')){
+        if(interfaces.en0[1].family === 'IPv4'){
+            ip = interfaces.en0[1].address;
+        } else {
+            ip = interfaces.en0[1].address;
+        }
+    }
     var lineReader = require('readline').createInterface({
         input: require('fs').createReadStream(cmdArgs[2])
     });

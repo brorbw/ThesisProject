@@ -766,13 +766,25 @@ async function main(){
         process.exit(1);
     }
     port = cmdArgs[0];
-    ip = cmdArgs[1];
+    if(interfaces.hasOwnProperty('enp2s0')){
+        if(interfaces.enp2s0[0].family === 'IPv4'){
+            ip = interfaces.enp2s0[0].address;
+        } else {
+            ip = interfaces.enp2s0[1].address;
+        }
+    } else if (interfaces.hasOwnProperty('en0')){
+        if(interfaces.en0[1].family === 'IPv4'){
+            ip = interfaces.en0[1].address;
+        } else {
+            ip = interfaces.en0[1].address;
+        }
+    }
     id = aes.generateKey(4);
     streamForward = fs.createWriteStream(`../data/${id}_forward.txt`);
     streamOriginal = fs.createWriteStream(`../data/${id}_original.txt`);
     streamCover = fs.createWriteStream(`../data/${id}_cover.txt`);
     console.log(`ID: ${id}`);
-    cmdArgs.slice(2).forEach((element) =>{
+    cmdArgs.slice(1).forEach((element) =>{
         factoryKeys.push(element);
     });
     setInterval(mainAppLoop,1000);
