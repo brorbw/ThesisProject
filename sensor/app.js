@@ -766,6 +766,7 @@ async function main(){
         process.exit(1);
     }
     port = cmdArgs[0];
+    var interfaces = os.networkInterfaces();
     if(interfaces.hasOwnProperty('enp2s0')){
         if(interfaces.enp2s0[0].family === 'IPv4'){
             ip = interfaces.enp2s0[0].address;
