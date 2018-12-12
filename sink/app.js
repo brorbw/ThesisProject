@@ -7,7 +7,6 @@ const app = express();
 const jsonSize = require('json-size');
 var stream;
 var port = 3000;
-var 
 var ip;
 require('dns').lookup(require('os').hostname(), function (err, add, fam) {
     ip = add;
