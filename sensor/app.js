@@ -501,8 +501,8 @@ function connectThisNode(paranIp,paranPort){
     //initialising the connection protocol with node ip
     parent = new Node(paranIp,paranPort,undefined,undefined);
     console.log(`connecting to ${parent.port}`);
-    var msg = aes.randomString(16);
-    var encryptedmsg = aes.encrypt(factoryKeys[0],128, iv,msg);
+    var msg = aes.randomstring(16);
+    var encryptedmsg = aes.encrypt(factorykeys[0],128, iv,msg);
     var message = {
         node : {
             id : id,
@@ -535,7 +535,8 @@ function requestPairKeyToNode(node){
             node2:{
                 id:node.id,
                 port:node.port,
-                ip: node.ip}
+                ip: node.ip
+            }
         }
     };
     //send request to the sink
