@@ -19,7 +19,7 @@ var routeMap = new Map();
 var pairKeys = new Map();
 app.use(express.json());
 var dataLog = false;
-var fileLogger = false;
+var fileLogger = true;
 if(dataLog){
     var _privatelog = console.log;
     // var _privateerr = console.error;
@@ -180,7 +180,7 @@ app.put('/sensors/connect/:id', function(req,res){
         var decryptedMessages = decryptedMessage(req.body);
         var nodePath = decryptedMessages.nodePath;
         var json_size = jsonSize(req.body);
-        data.log(nodePath.length,json_size);
+        //data.log(nodePath.length,json_size);
         var initNodemessage = decryptedMessages.msg;
         try {
             var encryptionKeyNode = checkWhichKeyEncryption(initNodemessage);
@@ -200,6 +200,7 @@ app.put('/sensors/connect/:id', function(req,res){
             iv: iv,
             key: encryptedKey,
             sinkID : id,
+            depth : nodePath.length,
             parentID: (nodePath.length > 1) ? nodePath[nodePath.length-2] : id
         };
         for(var i = 0;i<nodes.length;i++){
@@ -315,12 +316,17 @@ app.put('/forward',function(req,res){
                                                     128,
                                                     body.iv,
                                                     body.message));
-        if(decryptedOuter.idTO === id){
+        if(decryptedOuter.cover){
+            //the received message was cover traffic
+            //discarding message
+        } else if(decryptedOuter.idTO === id){
             var key = nodes.find((element)=>{return element.id === decryptedOuter.idFROM;});
             var decryptInner = JSON.parse(aes.decrypt(key.key,
                                                       128,
                                                       decryptedOuter.iv,
                                                       JSON.stringify(decryptedOuter.message)));
+            var date = new Date();
+            data.log(parseInt(decryptedOuter.idFROM)-3000,date.getTime()-decryptInner);
             console.log(`got data: ${decryptInner} from ${decryptedOuter.idFROM}`);
         }else if(decryptedOuter.cover){
             //forward cover traffic
@@ -328,7 +334,6 @@ app.put('/forward',function(req,res){
         }else if(routeMap.has(decryptedOuter.idTO)){
             //message is going to child
             var forwardNode = routeMap.get(decryptedOuter.idTO);
-            
             var encryptedMessage = aes.encrypt(pairKeys.get(forwardNode.id),
                                                128,
                                                iv,
@@ -508,7 +513,7 @@ function main(){
     var lineReader = require('readline').createInterface({
         input: require('fs').createReadStream(cmdArgs[2])
     });
-    if(fileLogger)stream = fs.createWriteStream(`../data/${id}.txt`);
+    if(fileLogger)stream = fs.createWriteStream(`../data/traffic/${id}.txt`);
     lineReader.on('line',function(line){
         factoryKeys.push(line);
     });

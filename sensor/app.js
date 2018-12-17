@@ -16,7 +16,7 @@ var parent;
 var sinkKey;
 var sinkID;
 var toggleData = true;
-var toggleCover = false;
+var toggleCover = true;
 var id;
 var ip;
 var iv = 'JpC10OoCLYs5u+lS7APMaA==';
@@ -24,9 +24,10 @@ var factoryKeys = ['09e0ff82691c1fe063b49714c7375088'];
 var keyPairMap = new Map();
 var routeMap = new Map(); //a map that contains the nodes that have made requests for a specific id
 var isConnected = false;
-
-
-var filelogger = false;
+var date;
+var depth;
+var filelogger = true;
+var time;
 var dataLog = false;
 if(dataLog){
     var _privatelog = console.log;
@@ -202,6 +203,7 @@ app.put('/sensors/disconnect/:id',function (req,res){
 app.put('/sensors/parent',async function (req,res){
     var newParent = req.body.parent;
     isConnected = false;
+    depth = req.body.depth;
     parent = new Node(newParent.ip,newParent.port,newParent.id);
     await sleep(1000);
     requestPairKeyToNode(parent);
@@ -254,6 +256,7 @@ app.get('/sensors/disconnect',function (req,res){
             if(element.id === key){
                 //the node is an apparent child
                 var message = {
+                    depth : depth,
                     parent : parent
                 };
                 var options = optionsGenerator(element.ip,
@@ -302,7 +305,8 @@ app.get('/sensors/connect',function(req,res) {
             sinkKey = undefined;
             connectThisNode(req.query.ip,req.query.port);
         });
-        res.send(`Node ${id} is connecting to the network`);
+        //res.send(`Node ${id} is connecting to the network`);
+        res.sendStatus(200);
     } else {
         res.send('malformed url. missing either port or ip');
     }
@@ -326,8 +330,7 @@ app.put('/sensors/connect/:id', function(req,res){
     //wrap the request body, encrypt using sink key and add id
     var body = req.body;
     setImmediate(()=>{
-        var decryptedBody = body;
-        var encryptedBody = aes.encrypt(sinkKey,128,iv,JSON.stringify(decryptedBody));
+        var encryptedBody = aes.encrypt(sinkKey,128,iv,JSON.stringify(body));
         var newBody = {
             node : {
                 id : id, //the ID of the current node
@@ -358,6 +361,7 @@ app.put('/sink/connect/:id', function(req,res){
         sinkKey = decryptedKey;
         sinkID = body.sinkID;
         parent.id = body.parentID;
+        depth = parseInt(body.depth);
         console.log(`setting key ${decryptedKey} as the sinkKey for this node`);
         //get a key to the parent
         requestPairKeyToNode(parent);
@@ -381,7 +385,6 @@ app.put('/sink/connect/:id', function(req,res){
 
 app.put('/forward',function(req,res){
     var date = new Date();
-    if(filelogger) streamForward.write(`${port},${date.getTime()},1\n`);
     //forwards a message
     /**
        outer message structure
@@ -400,12 +403,21 @@ app.put('/forward',function(req,res){
        }
     */
     var body = req.body;
+    var decryptedMessage = JSON.parse(aes.decrypt(
+        keyPairMap.get(body.id),
+                                                  128,
+                                                  body.iv,
+                                                  body.message));
+    if(decryptedMessage.cover){
+        //received cover from child
+        //discarding message
+        res.sendStatus(200);
+        return;
+    }
+    if(filelogger) streamForward.write(`${port},${date.getTime()},1\n`);
     if(keyPairMap.has(body.id)){
-        var decryptedMessage = JSON.parse(aes.decrypt(keyPairMap.get(body.id),
-                                                      128,
-                                                      body.iv,
-                                                      body.message));
         if(decryptedMessage.idTO === id){
+            if(filelogger) streamForward.write(`${port},${date.getTime()},1\n`);
             console.log('the message is for this node');
             var decryptedInner = JSON.parse(aes.decrypt(keyPairMap.get(decryptedMessage.idFROM),
                                                         128,
@@ -461,8 +473,10 @@ app.get('/keys/number/nopre', function(req,res){
     //get the number of non pre keys shared by this node
 });
 
-app.get('/keys/number/pre', function(req,res){
+app.get('/keys/number', function(req,res){
     //get current number of pre keys used by this node
+    var numberOfkeys = keyPairMap.size;
+    res.send(`${numberOfkeys}`);
 });
 app.get('/sendDataToSink', function(req,res){
     if(req.query.hasOwnProperty('data')){
@@ -498,11 +512,13 @@ app.get('/sendDataToNode',async function(req,res){
 });
 
 function connectThisNode(paranIp,paranPort){
+    var date = new Date();
+    time = date.getTime();
     //initialising the connection protocol with node ip
     parent = new Node(paranIp,paranPort,undefined,undefined);
     console.log(`connecting to ${parent.port}`);
-    var msg = aes.randomstring(16);
-    var encryptedmsg = aes.encrypt(factorykeys[0],128, iv,msg);
+    var msg = aes.randomString(16);
+    var encryptedmsg = aes.encrypt(factoryKeys[0],128, iv,msg);
     var message = {
         node : {
             id : id,
@@ -593,15 +609,13 @@ function optionsGenerator(ip,port,path,method,data){
     var datalength;
     var stringData = JSON.stringify(data).toString();
     datalength =(typeof data === 'undefined') ? 0 : Buffer.byteLength(stringData);
-    if(method === 'get'){
+    if(method === 'get' || method === 'GET'){
         return {
             hostname: ip,
             port: port,
             path: path,
             method: method,
             headers: {
-                //'Content-Type': 'application/JSON',
-                //'Content-Length': datalength
             }
         };
     } else {
@@ -645,7 +659,6 @@ function sendDataToNode (data,node){
             idFROM : id,
             idTO : node.id,
             cover : false,
-            coverCount : 0,
             iv : iv,
             message : encryptedData
         };
@@ -696,7 +709,6 @@ function sendDataToSink (data){
         idFROM : id,
         idTO : sinkID,
         cover : false,
-        coverCount : 0,
         iv : iv,
         message : encryptedData
     };
@@ -712,12 +724,38 @@ function sendDataToSink (data){
                                    outerMessage);
     httpRequest(options,(data)=>{},outerMessage);
 }
-function sendCover (data){
+
+function sendCover (){
+    var data = aes.randomString(16);
     var date = new Date();
     if(filelogger)streamCover.write(`${port},${date.getTime()},1\n`);
-    var encryptedData = aes.encrypt(sinkKey,128,iv,data);
-    
-}
+    var encryptedData = aes.encrypt(aes.generateKey(16),
+                                    128,
+                                    iv,
+                                    JSON.stringify(data));
+    var innerMessage = {
+        idFROM : id,
+        idTO : parent.id,
+        cover : true,
+        iv : iv,
+        message : encryptedData
+    };
+    var outerMessage = {
+        id : id,
+        iv : iv,
+        message : aes.encrypt(keyPairMap.get(parent.id),
+                              128,
+                              iv,
+                              JSON.stringify(innerMessage))
+    };
+    var options = optionsGenerator(parent.ip,
+                                   parent.port,
+                                   '/forward',
+                                   'put',
+                                   outerMessage);
+    httpRequest(options,(data)=>{},outerMessage);
+};
+
 
 app.get('/toggle/data',function (req,res){
     toggleData = (toggleData) ? false : true;
@@ -726,7 +764,7 @@ app.get('/toggle/data',function (req,res){
 app.get('/toggle/cover', function (req,res) {
     toggleCover = (toggleCover) ? false : true;
     res.sendStatus(200);
-})
+});
 
 function mainAppLoop(){
     //this is where data should be collected and send to the
@@ -734,9 +772,16 @@ function mainAppLoop(){
         if(toggleData){
             if(toggleCover){
                 //do cover stuff & data
+                //sendcover
+                for(var i = 0; i<=depth; i++){
+                    sendCover();
+                }
+                var date = new Date();
+                sendDataToSink(date.getTime());
             } else {
                 //do data stuff
-                sendDataToSink('hello world');
+                var date = new Date();
+                sendDataToSink(date.getTime());
             }
         } else if (toggleCover){
             //only do cover stuff
@@ -782,9 +827,9 @@ async function main(){
         }
     }
     id = aes.generateKey(4);
-    if(filelogger)streamForward = fs.createWriteStream(`../data/${id}_forward.txt`);
-    if(filelogger)streamOriginal = fs.createWriteStream(`../data/${id}_original.txt`);
-    if(filelogger)streamCover = fs.createWriteStream(`../data/${id}_cover.txt`);
+    if(filelogger)streamForward = fs.createWriteStream(`../data/traffic/${id}_forward.txt`);
+    if(filelogger)streamOriginal = fs.createWriteStream(`../data/traffic/${id}_original.txt`);
+    if(filelogger)streamCover = fs.createWriteStream(`../data/traffic/${id}_cover.txt`);
     cmdArgs.slice(1).forEach((element) =>{
         factoryKeys.push(element);
     });
