@@ -239,7 +239,8 @@ app.put('/sensors/connect/:id', function(req,res){
         //send key back to the node
         var options = optionsGenerator(routeMap.get(initNodemessage.node.id).ip,
                                        routeMap.get(initNodemessage.node.id).port,
-                                       //should be port that initiated//initNodemessage.node.port,
+                                       //should be port that initiated
+                                       //initNodemessage.node.port,
                                        `/sink/connect/${initNodemessage.node.id}`,
                                        'put',
                                        message);
@@ -305,9 +306,9 @@ app.put('/forward',function(req,res){
        {
            id : the node that the message should be forwarded to
            cover : boolean
-           coverCount : number of 
+           coverCount : number of
            iv : the initialisation Vector
-           message : encrypted message 
+           message : encrypted message
        }
     */
     var body = req.body;
@@ -317,8 +318,6 @@ app.put('/forward',function(req,res){
                                                     body.iv,
                                                     body.message));
         if(decryptedOuter.cover){
-            //the received message was cover traffic
-            //discarding message
         } else if(decryptedOuter.idTO === id){
             var key = nodes.find((element)=>{return element.id === decryptedOuter.idFROM;});
             var decryptInner = JSON.parse(aes.decrypt(key.key,
@@ -482,10 +481,10 @@ function Node(ip, port, id, key){
     this.id = id;
     this.key = (typeof key === 'undefined') ? undefined : key;
 }
+
 function mainAppLoop(){
     //This loop will run once every second.
 }
-
 
 function main(){
     var cmdArgs = args.args();
