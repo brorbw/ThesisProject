@@ -22,15 +22,7 @@ var dataLog = false;
 var fileLogger = true;
 if(dataLog){
     var _privatelog = console.log;
-    // var _privateerr = console.error;
     console.log = (string)=>{};
-    // console.error = iderror;
-    // function idlog (text){
-    //     _privatelog(`${id}: ${text}`);
-    // };
-    // function iderror(text){
-    //     _privateerr(`${id}: ${text}`);
-    // }
 } else {
     var _privatelog = (string)=>{};
 }
@@ -174,13 +166,11 @@ app.put('/key/sensor/:id',function(req,res){
 
 app.put('/sensors/connect/:id', function(req,res){
     //connect the node with id 'id'
-    //console.log(`${id}:data request size = ${jsonSize(req.body)}`);
     setImmediate(()=>{
         //init the respond message
         var decryptedMessages = decryptedMessage(req.body);
         var nodePath = decryptedMessages.nodePath;
         var json_size = jsonSize(req.body);
-        //data.log(nodePath.length,json_size);
         var initNodemessage = decryptedMessages.msg;
         try {
             var encryptionKeyNode = checkWhichKeyEncryption(initNodemessage);
@@ -423,8 +413,6 @@ function checkWhichKeyEncryption(msg){
 
 function httpRequest(options, callback, data){
     var req = http.request(options, (res) =>{
-        // console.log(`status: ${res.statusCode}`);
-        // console.log(`headers: ${JSON.stringify(res.headers)}`);
         if(res.statusCode === 202){
             return;
         }
@@ -433,14 +421,11 @@ function httpRequest(options, callback, data){
         res.on('data', (chunk) => {
             //chunk the data
             output += chunk;
-            //console.log(`body: ${chunk}`);
         });
         res.on('end', () => {
             //do something with the data
             //use the callback
             callback(output);
-            //var obj = JSON.parse(output);
-            //console.log('no more data');
         });
     });
     req.on('error', (e) =>{
@@ -518,7 +503,6 @@ function main(){
     });
     //add this sink to the nodes
     nodes.push(new Node(ip,port,id,undefined));
-    //setInterval(mainAppLoop, 1000);
     app.listen(port, ()=>console.log(`Sink is started on ip:${ip} and port:${port}`));
 }
 

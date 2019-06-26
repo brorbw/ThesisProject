@@ -17,13 +17,10 @@ function randomIV(length){
 function encrypt(key, keyLength, iv, plaintext) {
 		const ptBuf = Buffer.from(plaintext, 'utf8');
     const ivBuf = Buffer.from(iv, 'base64');
-
 		const cipher = crypto.createCipheriv(`aes${keyLength}`,
                                          parseKey(key,keyLength),
                                          ivBuf);
-
 		const ctBuf = Buffer.concat([cipher.update(ptBuf), cipher.final()]);
-
 		return ctBuf.toString('base64');
 	}
 
